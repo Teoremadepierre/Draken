@@ -1,0 +1,49 @@
+{
+  "discovery": [
+    "What are the best {category} tools in {year}?",
+    "Which {category} companies should I consider for {use_case}?",
+    "Recommend a {category} provider for {audience}.",
+    "What is the leading {category} platform right now?",
+    "Who are the top alternatives to {competitor}?"
+  ],
+  "comparison": [
+    "Compare the main {category} options for {audience}.",
+    "{brand} vs {competitor}: which is better for {use_case}?",
+    "What are the pros and cons of {brand}?",
+    "Is {brand} worth it compared to {competitor}?"
+  ],
+  "brand": [
+    "What is {brand}?",
+    "Is {brand} reputable?",
+    "What do customers say about {brand}?",
+    "Who founded {brand} and what do they do?",
+    "How much does {brand} cost?"
+  ],
+  "problem": [
+    "How do I {job_to_be_done}?",
+    "What is the easiest way to {job_to_be_done} for {audience}?",
+    "I need help with {pain_point}. What are my options?",
+    "What should I look for when choosing a {category} provider?"
+  ],
+  "local": [
+    "Best {category} in {city}?",
+    "Who provides {category} near {city}?",
+    "Recommend a trustworthy {category} business in {city}."
+  ],
+  "discovery_es": [
+    "¿Cuáles son las mejores herramientas de {category} en {year}?",
+    "¿Qué empresa de {category} me recomiendas para {use_case}?",
+    "¿Cuáles son las alternativas a {competitor}?",
+    "Recomiéndame un proveedor de {category} para {audience}."
+  ],
+  "brand_es": [
+    "¿Qué es {brand}?",
+    "¿{brand} es de fiar?",
+    "¿Qué opinan los clientes de {brand}?",
+    "¿Cuánto cuesta {brand}?"
+  ],
+  "local_es": [
+    "¿Mejor {category} en {city}?",
+    "¿Quién ofrece {category} cerca de {city}?"
+  ]
+}

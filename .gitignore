@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Data / runtime
+*.db
+*.db-journal
+*.sqlite3
+data/draken.db
+data/runtime/
+data/exports/
+data/cache/
+logs/
+*.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node (frontend tooling is optional; app needs no build step)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

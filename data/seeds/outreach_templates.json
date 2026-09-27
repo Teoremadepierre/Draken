@@ -1,0 +1,119 @@
+[
+  {
+    "name": "Unlinked mention reclamation",
+    "tactic": "unlinked_mention",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Quick one about your {{page_title}} piece",
+    "body": "Hi {{contact_first_name}},\n\nYou mentioned {{brand}} in \"{{page_title}}\" ({{source_url}}) - thank you, genuinely.\n\nOne small thing: the mention isn't linked. If you're able to point it at {{landing_url}}, readers who want the detail can get straight to it.\n\nEither way, I appreciated the write-up.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Unlinked mention reclamation (ES)",
+    "tactic": "unlinked_mention",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "es",
+    "subject": "Una cosa rápida sobre tu artículo \"{{page_title}}\"",
+    "body": "Hola {{contact_first_name}}:\n\nMencionas {{brand}} en \"{{page_title}}\" ({{source_url}}) y te lo agradezco de verdad.\n\nUn detalle: la mención no lleva enlace. Si puedes apuntarla a {{landing_url}}, quien quiera el detalle llegará directo.\n\nEn cualquier caso, gracias por el artículo.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Broken link replacement",
+    "tactic": "broken_link",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Dead link on {{page_title}}",
+    "body": "Hi {{contact_first_name}},\n\nI was working through \"{{page_title}}\" ({{source_url}}) and the link to {{broken_url}} is returning a {{broken_status}}.\n\nWe publish {{asset_description}} at {{landing_url}} which covers the same ground, if that's useful as a replacement. If not, the heads-up on the dead link stands on its own.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Resource page inclusion",
+    "tactic": "resource_page",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Suggestion for your {{topic}} resources page",
+    "body": "Hi {{contact_first_name}},\n\nYour {{topic}} resource list at {{source_url}} is one of the few that's actually maintained - the {{specific_item}} entry in particular.\n\nWe built {{asset_description}} ({{landing_url}}). It's free, no signup, and covers {{gap_description}}, which I didn't see represented on the page.\n\nWorth a spot? No problem either way.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Resource page follow-up",
+    "tactic": "resource_page",
+    "step_number": 2,
+    "delay_days": 7,
+    "language": "en",
+    "subject": "Re: Suggestion for your {{topic}} resources page",
+    "body": "Hi {{contact_first_name}},\n\nClosing the loop on this one - if {{landing_url}} isn't a fit for the page, that's genuinely fine and I won't chase it again.\n\nIf it's just a question of timing, happy to wait.\n\n{{sender_name}}"
+  },
+  {
+    "name": "Data study pitch (digital PR)",
+    "tactic": "digital_pr",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Data: {{headline_finding}}",
+    "body": "Hi {{contact_first_name}},\n\nWe analysed {{sample_description}} and found {{headline_finding}}.\n\nTwo other findings that might fit your {{beat}} coverage:\n- {{finding_two}}\n- {{finding_three}}\n\nFull methodology and the raw dataset are at {{landing_url}} - free to use with attribution. I can pull a custom cut for your region or segment if that's more useful.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Guest contribution pitch",
+    "tactic": "guest_post",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Contribution idea for {{target_site}}: {{pitch_title}}",
+    "body": "Hi {{contact_first_name}},\n\nI read \"{{recent_article}}\" on {{target_site}}. The point about {{specific_point}} matched what we see in our own data.\n\nPitch: \"{{pitch_title}}\" - {{pitch_summary}}. It would draw on {{credibility_proof}}, and I'd write it specifically for {{target_site}}, not repurpose anything.\n\nHappy to send a full outline first. If the angle is wrong for you, tell me and I'll try a different one.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Partner / integration listing request",
+    "tactic": "partner_link",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Adding {{brand}} to your {{page_type}} page",
+    "body": "Hi {{contact_first_name}},\n\nWe've been using {{their_product}} for {{duration}} and built {{integration_description}} on top of it.\n\nI noticed {{source_url}} lists {{page_type}}. Would you add us? I can send a logo, a 40-word description and a screenshot in whatever format you need.\n\nHappy to write a case study on our side too, if that's useful to you.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Directory / listing submission follow-up",
+    "tactic": "directory",
+    "step_number": 2,
+    "delay_days": 14,
+    "language": "en",
+    "subject": "Listing submission for {{brand}} ({{submitted_on}})",
+    "body": "Hi,\n\nI submitted {{brand}} to {{target_site}} on {{submitted_on}} and wanted to check whether anything else is needed from us.\n\nDetails: {{brand}} - {{short_description}} - {{landing_url}}\n\nThanks,\n{{sender_name}}"
+  },
+  {
+    "name": "Podcast guest pitch",
+    "tactic": "podcast",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Guest idea for {{show_name}}: {{pitch_title}}",
+    "body": "Hi {{contact_first_name}},\n\nI listened to the {{recent_episode}} episode of {{show_name}} - the segment on {{specific_point}} was the part I keep thinking about.\n\nI could talk about {{pitch_title}}: {{pitch_summary}}. Concretely, I've {{credibility_proof}}.\n\nThree questions your audience would get answers to:\n- {{question_one}}\n- {{question_two}}\n- {{question_three}}\n\nNo worries if the fit isn't there.\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  },
+  {
+    "name": "Journalist request response",
+    "tactic": "expert_quote",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Re: {{query_topic}} - quote from {{sender_name}}, {{brand}}",
+    "body": "Hi {{contact_first_name}},\n\nResponding to your query on {{query_topic}}.\n\nQuote, ready to use:\n\"{{quote}}\"\n\nAttribution: {{sender_name}}, {{sender_role}} at {{brand}} ({{landing_url}})\n\nBackground if you need it: {{credibility_proof}}. I can be reached at {{sender_email}} and can turn a follow-up around same-day.\n\n{{sender_name}}"
+  },
+  {
+    "name": "Testimonial for a link",
+    "tactic": "partner_link",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Testimonial for {{their_product}}",
+    "body": "Hi {{contact_first_name}},\n\nWe've used {{their_product}} for {{duration}} and it's earned a recommendation. If a testimonial is useful, here's one you can publish as-is:\n\n\"{{testimonial}}\"\n- {{sender_name}}, {{sender_role}} at {{brand}}\n\nLogo and headshot on request. Attribution to {{landing_url}} would be appreciated but it's yours to use either way.\n\n{{sender_name}}"
+  },
+  {
+    "name": "Local sponsorship enquiry",
+    "tactic": "sponsorship",
+    "step_number": 1,
+    "delay_days": 0,
+    "language": "en",
+    "subject": "Sponsorship for {{organisation}}",
+    "body": "Hi {{contact_first_name}},\n\n{{brand}} is based in {{city}} and we'd like to sponsor {{organisation}} for {{season_or_event}}.\n\nWe can offer {{sponsorship_offer}}. If you list sponsors on your site, a mention as {{brand}} ({{landing_url}}) is all we'd ask.\n\nWho should I talk to about the details?\n\n{{sender_name}}\n{{sender_role}}, {{brand}}"
+  }
+]
