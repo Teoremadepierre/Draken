@@ -5,6 +5,43 @@ arrancarlo. Aquí están las cuatro formas reales, de más rápida a más contro
 
 ---
 
+## Antes de nada: ¿tu hosting puede con esto?
+
+Draken necesita **un proceso Python corriendo todo el tiempo y escuchando en un
+puerto**. Eso descarta la mayoría de los planes de *hosting compartido*
+(Hostinger, Banahosting, cPanel y similares): puedes subir los ficheros, pero el
+servidor mata los procesos en segundo plano y no te deja abrir un puerto.
+
+Compruébalo en 10 segundos. Entra por SSH y pega esto:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Teoremadepierre/Draken/claude/backlinks-seo-tool-study-2tlk0x/scripts/check-hosting.sh | bash
+```
+
+Solo lee: no instala nada, no cambia nada y no imprime ninguna contraseña. Te
+dice el tipo de hosting, la versión de Python, si puedes abrir un puerto y qué
+hosts alcanza tu servidor.
+
+Las dos líneas que deciden:
+
+```
+bind a port: CAN BIND (port 8000)     ← si dice CANNOT BIND, no se puede
+systemd:     yes                      ← si dice no, no hay servicio permanente
+```
+
+| Señal en la salida | Qué significa |
+|---|---|
+| `detected: vps-root` o `vps-sudo` + `CAN BIND` | Perfecto → **Opción A** |
+| `detected: shared-*` o `CANNOT BIND` | No sirve → **Opción B o C**, o sube a un VPS |
+| Python por debajo de 3.11 | Instálalo, o usa la opción B (el contenedor ya lo trae) |
+| `github.com: BLOCKED` | El servidor no tiene salida; ni siquiera podrás clonar |
+
+> **Nunca pegues tu contraseña de SSH en un chat** (ni en este). Queda guardada
+> en el historial. Los comandos de esta guía los ejecutas tú en tu terminal, así
+> que nadie necesita tus credenciales.
+
+---
+
 ## Decisión rápida
 
 ```
