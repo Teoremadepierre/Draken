@@ -37,6 +37,12 @@ python3 scripts/build_link_source_seed.py   # regenera data/seeds/link_sources.j
 - Añadir una regla de auditoría = una función en `engines/crawler/checks.py` más
   su entrada en `page_issues` o `site_issues`.
 
+## Traspaso
+`docs/HANDOFF-IA.md` es el briefing largo para quien continúe el proyecto: mapa
+del código, conexiones externas con su variable, dónde viven los secretos,
+regresiones ya corregidas y lo que queda por hacer. Manténlo al día cuando
+cambies algo de eso.
+
 ## Qué no implementar
 Resolución de CAPTCHAs, creación de cuentas con identidades falsas, rotación de
 IP para ocultar origen, hilado de contenido, o compra/intercambio de enlaces a

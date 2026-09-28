@@ -155,6 +155,9 @@ oportunidades ordenada por prioridad.
 | **[Guion de vídeo](docs/GUION-VIDEO.md)** | Plano a plano para grabar un tutorial de 8 minutos, más seis cortes temáticos |
 | **[Arquitectura](docs/ARQUITECTURA.md)** | Estructura, decisiones de diseño y modelo de datos |
 | **[Despliegue](docs/DESPLIEGUE.md)** | Local, Docker y VPS propio con nginx, systemd y cron |
+| **[Empezar](docs/EMPEZAR.md)** | Correrlo en tu ordenador: Mac, Linux, Windows y Docker, sin instalador |
+| **[Render](docs/RENDER.md)** | La URL gratuita clic a clic, con sus trampas y la copia de seguridad |
+| **[Traspaso a otra IA](docs/HANDOFF-IA.md)** | Briefing completo para que otro asistente continúe: mapa del código, reglas, conexiones, secretos, errores ya corregidos y qué falta |
 
 ---
 

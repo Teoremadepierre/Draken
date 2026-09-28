@@ -137,7 +137,7 @@ Para llevártelo a otro ordenador o a un servidor:
 | `could not create .venv` | Falta el módulo venv: `sudo apt install python3-venv`. |
 | `Address already in use` | El puerto 8000 está ocupado: `PORT=8123 bash scripts/empezar.sh`. |
 | La página carga pero pide usuario y contraseña | Tienes `DRAKEN_AUTH_ENABLED=true` en el `.env` sin contraseña. Ponlo en `false` para uso local. |
-| El escáner no encuentra nada de la competencia | Tu red o tu proveedor bloquea los buscadores. Menú → **Diagnóstico**: dice exactamente qué host falla y qué deja de funcionar por ello. |
+| El escáner no encuentra nada de la competencia | Tu red o tu proveedor bloquea los buscadores. Menú → **Fuentes de datos** → *Diagnóstico de conectividad*: dice exactamente qué host falla y qué deja de funcionar por ello. |
 
 ---
 
