@@ -215,7 +215,7 @@ def site_issues(pages: list[dict], *, robots_exists: bool, sitemap_count: int) -
                              f"{len(urls)} pages share the title \"{t[:80]}\".",
                              "Give every page a title that describes only that page; consolidate true duplicates.",
                              urls[0], category="on-page", detail={"urls": urls[:20], "count": len(urls)}))
-    for d, urls in descs.items():
+    for urls in descs.values():
         if len(urls) > 1:
             out.append(Issue("duplicate_meta_description", W, "Duplicate meta description",
                              f"{len(urls)} pages share the same description.",

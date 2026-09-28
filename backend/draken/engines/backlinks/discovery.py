@@ -153,9 +153,9 @@ async def verify_links(
         async with PoliteClient(concurrency=4, delay=0.8, timeout=20) as c:
             links = await run(c)
 
-    auth_map = await authority.authority_for([l.source_domain for l in links])
-    for l in links:
-        l.domain_authority = auth_map.get(l.source_domain, 0.0)
+    auth_map = await authority.authority_for([link.source_domain for link in links])
+    for link in links:
+        link.domain_authority = auth_map.get(link.source_domain, 0.0)
     return links
 
 
@@ -201,8 +201,8 @@ async def discover_mentions(
         return []
 
     links = await verify_links([(u, domain) for u in candidate_urls[:80]])
-    for l in links:
-        l.discovered_via = "mention_search"
+    for link in links:
+        link.discovered_via = "mention_search"
     return links
 
 
@@ -278,9 +278,9 @@ async def discover_competitor_links(
                 urls.append(item.url)
 
     links = await verify_links([(u, competitor_domain) for u in urls[:80]])
-    live = [l for l in links if l.status == LinkStatus.live.value]
-    for l in live:
-        l.discovered_via = "competitor_serp"
+    live = [link for link in links if link.status == LinkStatus.live.value]
+    for link in live:
+        link.discovered_via = "competitor_serp"
     log.info(
         "competitor discovery %s: %d candidates -> %d confirmed links",
         competitor_domain, len(urls), len(live),

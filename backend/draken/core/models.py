@@ -209,7 +209,9 @@ class Keyword(Base, TimestampMixin):
     is_branded: Mapped[bool] = mapped_column(Boolean, default=False)
     serp_features: Mapped[list] = mapped_column(JSON, default=list)
     source: Mapped[str] = mapped_column(String(60), default="manual")
-    cluster_id: Mapped[int | None] = mapped_column(ForeignKey("keyword_clusters.id"), nullable=True)
+    cluster_id: Mapped[int | None] = mapped_column(
+        ForeignKey("keyword_clusters.id", ondelete="SET NULL"), nullable=True
+    )
     parent_topic: Mapped[str] = mapped_column(String(400), default="")
     is_tracked: Mapped[bool] = mapped_column(Boolean, default=False)
     notes: Mapped[str] = mapped_column(Text, default="")

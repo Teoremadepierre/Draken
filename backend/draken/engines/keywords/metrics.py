@@ -34,7 +34,7 @@ _TRANSACTIONAL_HINTS = {
 }
 _LOCAL_HINTS = {
     "near", "nearby", "local", "me", "area", "open", "now", "emergency", "24",
-    "cerca", "domicilio", "urgente", "local",
+    "cerca", "domicilio", "urgente",
 }
 _INFO_HINTS = {
     "what", "how", "why", "when", "guide", "tutorial", "examples", "tips", "ideas",
@@ -119,11 +119,13 @@ def estimate_volume(
     # Round to a readable bucket so the number never looks more precise than it is.
     rounded = _bucket(volume)
 
+    if seed_volume is not None:
+        # A real provider number, not an estimate.
+        return rounded, 1.0
     confidence = 0.25 + 0.15 * min(provider_count, 3)
     if suggest_rank is not None:
         confidence += 0.1
-    if seed_volume is not None:
-        confidence = 1.0
+    # Cap below 1.0: an estimate should never claim provider-grade certainty.
     return rounded, round(min(confidence, 0.85), 2)
 
 

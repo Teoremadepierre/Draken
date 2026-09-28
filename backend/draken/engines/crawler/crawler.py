@@ -15,7 +15,8 @@ from draken.core.urls import (
     same_site,
     url_depth,
 )
-from draken.engines.crawler import checks, robots as robots_mod
+from draken.engines.crawler import checks
+from draken.engines.crawler import robots as robots_mod
 from draken.engines.crawler.parser import parse_html
 
 log = get_logger(__name__)

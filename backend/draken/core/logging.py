@@ -14,7 +14,8 @@ def setup_logging(level: str | None = None) -> None:
     global _CONFIGURED
     if _CONFIGURED:
         return
-    handler = logging.StreamHandler(sys.stdout)
+    # stderr, not stdout: the CLI writes machine-readable JSON to stdout.
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)-7s %(name)s :: %(message)s", "%H:%M:%S")
     )

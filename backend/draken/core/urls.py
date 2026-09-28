@@ -25,7 +25,13 @@ def normalize_domain(value: str) -> str:
     host = urlparse(value).netloc or urlparse(value).path
     host = host.split("@")[-1].split(":")[0].lower().rstrip(".")
     parts = _extractor(host)
-    return parts.registered_domain or host
+    if parts.registered_domain:
+        return parts.registered_domain
+    # Suffix not in the public suffix list (a reserved TLD like .example, an
+    # internal .local, a brand-new gTLD the snapshot predates). Fall back to the
+    # last two labels so "www.a.example" and "a.example" still compare equal.
+    labels = [label for label in host.split(".") if label]
+    return ".".join(labels[-2:]) if len(labels) >= 2 else host
 
 
 def subdomain_of(value: str) -> str:
