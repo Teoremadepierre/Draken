@@ -68,6 +68,18 @@ def ensure_bootstrap_owner(db: Session) -> User | None:
     return owner
 
 
+def _bootstrap_password_matches(password: str) -> bool:
+    """Check the .env admin credentials, hash first then plain text."""
+    if settings.admin_password_hash:
+        return verify_password(password, settings.admin_password_hash)
+    if settings.admin_password:
+        # Constant-time compare so the plain-text path is not a timing oracle.
+        import hmac
+
+        return hmac.compare_digest(password, settings.admin_password)
+    return False
+
+
 def list_users(db: Session) -> list[User]:
     return list(db.execute(select(User).order_by(User.id)).scalars())
 
@@ -86,11 +98,7 @@ def authenticate(db: Session, *, username: str, password: str) -> User | None:
             return user
         return None
 
-    if (
-        username == settings.admin_user
-        and settings.admin_password_hash
-        and verify_password(password, settings.admin_password_hash)
-    ):
+    if username == settings.admin_user and _bootstrap_password_matches(password):
         owner = ensure_bootstrap_owner(db)
         if owner:
             owner.last_login_at = utcnow()

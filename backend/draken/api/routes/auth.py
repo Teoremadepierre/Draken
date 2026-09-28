@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Response
 
 from draken.core.config import settings
 from draken.core.schemas import LoginRequest, TokenOut
-from draken.core.security import issue_token, verify_password
+from draken.core.security import issue_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -15,11 +15,13 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 def auth_status() -> dict:
     return {
         "auth_enabled": settings.auth_enabled,
-        "configured": bool(settings.admin_password_hash) if settings.auth_enabled else True,
+        "configured": settings.has_admin_credentials if settings.auth_enabled else True,
         "hint": (
-            "Generate a hash with: python -m draken.cli.main hash-password 'yourpassword' "
-            "then set DRAKEN_ADMIN_PASSWORD_HASH."
-        ) if settings.auth_enabled and not settings.admin_password_hash else "",
+            "Set DRAKEN_ADMIN_PASSWORD, or generate a hash with "
+            "`python -m draken.cli.main hash-password 'yourpassword'` and set "
+            "DRAKEN_ADMIN_PASSWORD_HASH (preferred: the password itself never enters "
+            "the environment)."
+        ) if settings.auth_enabled and not settings.has_admin_credentials else "",
     }
 
 
@@ -29,7 +31,7 @@ def login(payload: LoginRequest, response: Response) -> TokenOut:
         token = issue_token(payload.username or "anonymous")
         return TokenOut(token=token, username=payload.username or "anonymous",
                         expires_in_hours=settings.session_ttl_hours)
-    if not settings.admin_password_hash:
+    if not settings.has_admin_credentials:
         raise HTTPException(
             status_code=503,
             detail=(
@@ -37,9 +39,15 @@ def login(payload: LoginRequest, response: Response) -> TokenOut:
                 "`python -m draken.cli.main hash-password 'yourpassword'` and add the result to .env."
             ),
         )
-    if payload.username != settings.admin_user or not verify_password(
-        payload.password, settings.admin_password_hash
-    ):
+    from draken.core.database import SessionLocal
+    from draken.services import accounts
+
+    db = SessionLocal()
+    try:
+        user = accounts.authenticate(db, username=payload.username, password=payload.password)
+    finally:
+        db.close()
+    if user is None:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     token = issue_token(payload.username)

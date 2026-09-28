@@ -10,6 +10,24 @@ API; cada clave que añades sustituye una estimación por un dato real.
 
 ---
 
+## Consigue tu URL
+
+Draken es autoalojado, así que la URL la generas tú. Cuatro formas, de más
+rápida a más control — todas detalladas en **[docs/PUBLICAR.md](docs/PUBLICAR.md)**:
+
+| | Cómo | Tiempo | Resultado |
+|---|---|---|---|
+| **Tu servidor** | `curl -fsSL .../install.sh \| bash -s -- seo.tudominio.com` | 10 min | `https://seo.tudominio.com` |
+| **Render** | New → Blueprint sobre este repo (lee `render.yaml`) | 5 min | `https://draken-xxx.onrender.com` |
+| **Fly.io** | `fly launch && fly deploy` (lee `fly.toml`) | 8 min | `https://draken.fly.dev` |
+| **Túnel** | `cloudflared tunnel --url http://localhost:8000` | 3 min | URL temporal, sin servidor |
+| **Local** | `draken serve` | 2 min | `http://127.0.0.1:8000` |
+
+El instalador genera la clave secreta y la contraseña de administrador, monta
+systemd, configura HTTPS automático con Caddy y programa el barrido semanal.
+
+---
+
 ## Empieza por aquí
 
 Abre el panel y pega la URL de tu web en **Escáner**. En uno o dos minutos
@@ -122,6 +140,7 @@ oportunidades ordenada por prioridad.
 |---|---|
 | **[Estudio de backlinks](docs/ESTUDIO-BACKLINKS.md)** | El documento estratégico: modelo de tres niveles, catálogo de tácticas con conversiones realistas, estrategia de anchors, qué no hacer y por qué, y un plan de 90 días |
 | **[Visibilidad en IA](docs/VISIBILIDAD-IA.md)** | Cómo funciona realmente que un asistente te recomiende, las siete palancas por impacto, y un plan de 30 días |
+| **[Publicar](docs/PUBLICAR.md)** | Las cuatro formas de conseguir tu URL, con los pasos exactos y qué asegurar antes de compartirla |
 | **[Guía visual](docs/GUIA-VISUAL.md)** | Para quien no ha hecho SEO nunca: qué pulsar, qué se ve y qué significa, con diagramas |
 | **[Guion de vídeo](docs/GUION-VIDEO.md)** | Plano a plano para grabar un tutorial de 8 minutos, más seis cortes temáticos |
 | **[Arquitectura](docs/ARQUITECTURA.md)** | Estructura, decisiones de diseño y modelo de datos |
@@ -207,7 +226,7 @@ Los límites están en el servidor, no en la interfaz:
 
 ```bash
 pip install -e "backend[dev]"
-pytest backend/tests -q        # 177 pruebas, ninguna necesita internet
+pytest backend/tests -q        # 196 pruebas, ninguna necesita internet
 ruff check backend/ scripts/
 ```
 

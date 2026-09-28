@@ -1,0 +1,50 @@
+# Fly.io. Gives you https://<app>.fly.dev and runs close to your users.
+#
+#   fly launch --no-deploy --copy-config
+#   fly volumes create draken_data --size 1
+#   fly secrets set DRAKEN_SECRET_KEY=$(openssl rand -hex 32) \
+#                   DRAKEN_ADMIN_PASSWORD='your-password'
+#   fly deploy
+#
+# A volume is used so the SQLite database survives restarts. For several
+# concurrent users, switch to Postgres with `fly postgres create` and set
+# DRAKEN_DATABASE_URL instead.
+
+app = "draken"
+primary_region = "mad"          # Madrid. See `fly platform regions`.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DRAKEN_ENV = "production"
+  DRAKEN_AUTH_ENABLED = "true"
+  DRAKEN_ADMIN_USER = "admin"
+  DRAKEN_DATABASE_URL = "sqlite:////data/draken.db"
+  DRAKEN_USER_AGENT = "DrakenSEO/0.1 (+https://github.com/Teoremadepierre/Draken)"
+
+[[mounts]]
+  source = "draken_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.http_options.response.headers]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+
+[[http_service.checks]]
+  grace_period = "30s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/health"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

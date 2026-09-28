@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     auth_enabled: bool = False
     admin_user: str = "admin"
     admin_password_hash: str = ""
+    # Plain-text alternative for platforms where you type env vars into a
+    # dashboard (Render, Fly, Railway) and hashing first is awkward. The hash is
+    # still preferred: it never puts the password itself in the environment.
+    admin_password: str = ""
     session_ttl_hours: int = 72
 
     # --- crawler ------------------------------------------------------------
@@ -120,6 +124,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def has_admin_credentials(self) -> bool:
+        return bool(self.admin_password_hash or self.admin_password)
 
     @property
     def is_production(self) -> bool:

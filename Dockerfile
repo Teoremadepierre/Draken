@@ -20,14 +20,19 @@ COPY backend /app/backend
 COPY frontend /app/frontend
 COPY data/seeds /app/data/seeds
 COPY scripts /app/scripts
+COPY deploy/entrypoint.sh /app/entrypoint.sh
 
 RUN useradd --system --create-home draken \
     && mkdir -p /app/data \
+    && chmod +x /app/entrypoint.sh \
     && chown -R draken:draken /app
 USER draken
 
-EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/api/health || exit 1
 
-CMD ["uvicorn", "draken.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Platforms inject PORT; locally it defaults to 8000.
+ENV PORT=8000
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT}/api/health" || exit 1
+
+ENTRYPOINT ["/app/entrypoint.sh"]

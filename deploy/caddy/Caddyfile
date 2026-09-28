@@ -1,0 +1,44 @@
+# Caddy: HTTPS certificates issued and renewed automatically, no certbot step.
+# Simpler than the nginx config for most people.
+#
+#   sudo apt install caddy
+#   sudo cp deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+#   # edit the domain below
+#   sudo systemctl reload caddy
+
+seo.example.com {                     # <-- your domain
+
+    reverse_proxy 127.0.0.1:8000 {
+        header_up X-Real-IP {remote_host}
+        # Audits and AI visibility runs take minutes; do not cut them off.
+        transport http {
+            read_timeout 600s
+            write_timeout 600s
+        }
+    }
+
+    header {
+        # Internal tool: never let it be indexed.
+        X-Robots-Tag "noindex, nofollow, noarchive"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    handle /robots.txt {
+        respond "User-agent: *
+Disallow: /
+" 200
+    }
+
+    request_body {
+        max_size 25MB
+    }
+
+    encode zstd gzip
+    log {
+        output file /var/log/caddy/draken.log
+        format json
+    }
+}
