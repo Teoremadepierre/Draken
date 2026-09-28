@@ -293,6 +293,42 @@ def cmd_sweep(args: argparse.Namespace) -> None:
     asyncio.run(run())
 
 
+def cmd_export(args: argparse.Namespace) -> None:
+    from draken.services.portability import export_all, export_project, to_json
+
+    with session_scope() as db:
+        if args.project:
+            payload = export_project(db, project=_get_project(db, args.project))
+        else:
+            payload = export_all(db)
+
+    text = to_json(payload)
+    if args.output:
+        from pathlib import Path
+
+        Path(args.output).write_text(text, encoding="utf-8")
+        counts = payload.get("counts") or {
+            "projects": len(payload.get("projects", []))
+        }
+        print(json.dumps({"written": args.output, "counts": counts}, indent=2), file=sys.stderr)
+    else:
+        print(text)
+
+
+def cmd_import(args: argparse.Namespace) -> None:
+    from pathlib import Path
+
+    from draken.services.portability import import_all
+
+    init_db()
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    with session_scope() as db:
+        try:
+            _out(import_all(db, payload, overwrite=args.overwrite))
+        except ValueError as exc:
+            raise SystemExit(f"error: {exc}") from exc
+
+
 def cmd_report(args: argparse.Namespace) -> None:
     from draken.services import backlinks as backlink_service
     from draken.services import geo as geo_service
@@ -425,6 +461,22 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("report", help="print the full project report as JSON")
     p.add_argument("project")
     p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser(
+        "export",
+        help="export projects to a portable JSON file (for backup or moving host)",
+    )
+    p.add_argument("project", nargs="?", help="id or domain; omit to export everything")
+    p.add_argument("-o", "--output", help="write to this file instead of stdout")
+    p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("import", help="restore projects from an export file")
+    p.add_argument("file")
+    p.add_argument(
+        "--overwrite", action="store_true",
+        help="replace a project that already exists for the same domain",
+    )
+    p.set_defaults(func=cmd_import)
 
     return parser
 

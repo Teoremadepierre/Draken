@@ -62,6 +62,9 @@ class Settings(BaseSettings):
 
     # --- first-party data (real, measured - not estimates) ------------------
     gsc_service_account_file: str = ""
+    # The key file's contents, for platforms with no writable disk where you
+    # paste the JSON straight into an environment variable.
+    gsc_service_account_json: str = ""
     gsc_client_id: str = ""
     gsc_client_secret: str = ""
     gsc_refresh_token: str = ""
@@ -139,6 +142,7 @@ class Settings(BaseSettings):
 
         gsc = bool(
             (self.gsc_service_account_file and _Path(self.gsc_service_account_file).exists())
+            or self.gsc_service_account_json.strip()
             or (self.gsc_client_id and self.gsc_client_secret and self.gsc_refresh_token)
         )
         return {

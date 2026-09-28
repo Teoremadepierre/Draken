@@ -475,15 +475,15 @@ export function closeModal() {
   modalOnClose = null;
 }
 
-export function confirmDialog(message, onConfirm, { danger = true, title } = {}) {
+export function confirmDialog(message, onConfirm, { danger = true, title, confirmLabel } = {}) {
   openModal({
-    title: title || t('action.delete'),
+    title: title || confirmLabel || t('action.delete'),
     body: el('p', { text: message }),
     footer: [
       el('button', { class: 'btn', text: t('action.cancel'), onClick: closeModal }),
       el('button', {
         class: `btn ${danger ? 'btn-danger' : 'btn-primary'}`,
-        text: t('action.delete'),
+        text: confirmLabel || t('action.delete'),
         onClick: async () => { closeModal(); await onConfirm(); },
       }),
     ],

@@ -121,6 +121,9 @@ cambia la contraseña.
 **Tu URL:** `https://draken-xxxx.onrender.com` (Render te la enseña).
 **Entra con:** `admin` y la contraseña que pusiste.
 
+> Los pasos con cada clic, qué ver en los logs y cómo hacer la copia de
+> seguridad antes de que caduque la base gratuita: **[RENDER.md](RENDER.md)**.
+
 > **Lo que hay que saber del plan gratuito:** el servicio se duerme tras 15
 > minutos sin uso y tarda unos 30 segundos en despertar. La base de datos
 > Postgres gratuita caduca a los 90 días y hay que recrearla. Para uso real

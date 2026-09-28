@@ -343,7 +343,73 @@ def read_shared_report(token: str, request: Request, db: Session = Depends(get_d
     return payload
 
 
+# ---------------------------------------------------------------------------
+# portability
+# ---------------------------------------------------------------------------
+
+portability_router = APIRouter(prefix="/api", tags=["portability"])
+
+
+@portability_router.get("/projects/{project_id}/export")
+def export_project_endpoint(
+    project: Project = Depends(get_project),
+    db: Session = Depends(get_db),
+):
+    """Download everything about this project as one portable JSON file.
+
+    Use it to back up before a free database lapses, or to move to your own
+    server without starting over.
+    """
+    from fastapi.responses import Response
+
+    from draken.services import portability
+
+    payload = portability.export_project(db, project=project)
+    filename = f"draken-{project.domain}-{payload['exported_at'][:10]}.json"
+    return Response(
+        content=portability.to_json(payload),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@portability_router.get("/export")
+def export_all_endpoint(db: Session = Depends(get_db), _user: str = Depends(current_user)):
+    """Every project in one file."""
+    from fastapi.responses import Response
+
+    from draken.services import portability
+
+    payload = portability.export_all(db)
+    return Response(
+        content=portability.to_json(payload),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="draken-all-{payload["exported_at"][:10]}.json"'
+            )
+        },
+    )
+
+
+@portability_router.post("/import")
+def import_endpoint(
+    payload: dict,
+    overwrite: bool = False,
+    db: Session = Depends(get_db),
+    _user: str = Depends(current_user),
+):
+    """Restore from an export file."""
+    from draken.services import portability
+
+    try:
+        return {"imported": portability.import_all(db, payload, overwrite=overwrite)}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 router.include_router(scan_router)
+router.include_router(portability_router)
 router.include_router(system_router)
 router.include_router(data_router)
 router.include_router(assist_router)

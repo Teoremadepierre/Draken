@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { t } from '../i18n.js';
 import {
-  actionButton, callout, card, confirmDialog, el, frag, num, pill, toast,
+  actionButton, callout, card, confirmDialog, download, el, frag, num, pill, toast,
 } from '../ui.js';
 
 export const meta = { id: 'settings', icon: 'settings', group: 'system' };
@@ -108,6 +108,63 @@ export async function render(ctx) {
       el('dt', { text: es ? 'Tareas registradas' : 'Registered jobs' }),
       el('dd', { text: num((health.job_kinds || []).length) }),
     ]),
+  ])));
+
+  out.append(card(es ? 'Copia de seguridad' : 'Backup', frag([
+    el('p', { class: 'card-sub', text: es
+      ? 'Un fichero con todo lo que te ha costado trabajo: proyectos, keywords, clústeres, backlinks, oportunidades con su estado, campañas, envíos y prompts de IA. No lleva claves de API ni contraseñas.'
+      : 'One file with everything that took work: projects, keywords, clusters, backlinks, opportunities with their status, campaigns, submissions and AI prompts. It carries no API keys or passwords.' }),
+    el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
+      actionButton(es ? 'Exportar todo' : 'Export everything', async () => {
+        const text = await api.getText('/export');
+        download(`draken-all-${new Date().toISOString().slice(0, 10)}.json`, text, 'application/json');
+        toast(es ? 'Descargado' : 'Downloaded', 'good');
+      }, { primary: true }),
+      ctx.project
+        ? actionButton(es ? 'Exportar este proyecto' : 'Export this project', async () => {
+          const text = await api.getText(`/projects/${ctx.project.id}/export`);
+          download(`draken-${ctx.project.domain}-${new Date().toISOString().slice(0, 10)}.json`,
+            text, 'application/json');
+          toast(es ? 'Descargado' : 'Downloaded', 'good');
+        })
+        : null,
+      actionButton(es ? 'Restaurar desde fichero' : 'Restore from a file', () => {
+        const picker = el('input', { type: 'file', accept: 'application/json,.json',
+          style: 'display:none' });
+        picker.addEventListener('change', async () => {
+          const file = picker.files && picker.files[0];
+          picker.remove();
+          if (!file) return;
+          let payload;
+          try {
+            payload = JSON.parse(await file.text());
+          } catch {
+            toast(es ? 'Ese fichero no es un export de Draken.' : 'That file is not a Draken export.', 'bad');
+            return;
+          }
+          confirmDialog(
+            es
+              ? 'Se restaurará el contenido del fichero. Si ya existe un proyecto con el mismo dominio, se reemplazará por completo.'
+              : 'The file will be restored. A project that already exists for the same domain will be replaced entirely.',
+            async () => {
+              const result = await api.post('/import', payload, { overwrite: true });
+              toast(es ? `Restaurados ${result.imported.length} proyecto(s)` : `Restored ${result.imported.length} project(s)`, 'good');
+              await ctx.refreshProjects();
+              ctx.reload();
+            },
+            { danger: false, confirmLabel: es ? 'Restaurar' : 'Restore' },
+          );
+        });
+        // It stays in the DOM until the change fires: removing it straight after
+        // click() cancels the selection in some browsers.
+        document.body.append(picker);
+        picker.click();
+      }),
+    ]),
+    callout(es
+      ? 'En un plan gratuito la base de datos caduca. Exporta una vez al mes y cambiar de hosting son cinco minutos en vez de empezar de cero.'
+      : 'On a free plan the database expires. Export once a month and moving host takes five minutes instead of starting over.',
+      'info'),
   ])));
 
   out.append(card(es ? 'Cómo suben los datos de nivel' : 'How the data gets better', frag([

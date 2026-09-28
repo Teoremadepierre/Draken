@@ -1,11 +1,23 @@
-# Render blueprint: deploys Draken plus a Postgres database.
+# Render blueprint. Deploys Draken plus a Postgres database.
 #
-# Use: push this repo to your GitHub, then in Render choose
-# New -> Blueprint, pick the repo, and Render reads this file.
-# You get https://<name>.onrender.com in a few minutes.
+#   1. Fork/push this repo to your own GitHub
+#   2. render.com -> New -> Blueprint -> pick the repo
+#   3. Render reads this file and asks you for DRAKEN_ADMIN_PASSWORD
+#   4. You get https://<name>.onrender.com
 #
-# Postgres, not SQLite, because Render's disk is ephemeral on the free plan:
-# a restart would wipe an SQLite file.
+# Two deliberate choices for the free plan:
+#
+#   Postgres, not SQLite. The free plan has no persistent disk, so an SQLite
+#   file would be wiped on every restart and redeploy.
+#
+#   Conservative crawl limits. A free instance is small (roughly 512 MB of RAM
+#   and a fraction of a CPU). The defaults below keep a site audit inside that
+#   budget; raise them once you are on a paid plan or a VPS.
+#
+# Free-plan limits move, so check Render's current terms. Two are worth knowing:
+# the service sleeps after a period without traffic and takes ~30 s to wake, and
+# the free database is time-limited. Back up with `draken export` before it
+# lapses - see docs/RENDER.md.
 
 databases:
   - name: draken-db
@@ -19,30 +31,76 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
+    region: frankfurt          # closest to Spain; see Render's region list
     healthCheckPath: /api/health
+    autoDeploy: true
+
     envVars:
+      # --- database --------------------------------------------------------
       - key: DRAKEN_DATABASE_URL
         fromDatabase:
           name: draken-db
           property: connectionString
+
+      # --- core ------------------------------------------------------------
       - key: DRAKEN_ENV
         value: production
       - key: DRAKEN_SECRET_KEY
-        generateValue: true          # Render generates and stores it
+        generateValue: true    # Render generates and stores it; never committed
+
+      # --- login -----------------------------------------------------------
+      # The only value you have to type. Render marks it secret.
       - key: DRAKEN_AUTH_ENABLED
         value: "true"
       - key: DRAKEN_ADMIN_USER
         value: admin
       - key: DRAKEN_ADMIN_PASSWORD
-        sync: false                  # you type this in the Render dashboard
+        sync: false
+
+      # --- sized for a free instance ---------------------------------------
+      # Lower than the defaults on purpose: a small container running lxml over
+      # many pages at once will be OOM-killed mid-audit otherwise.
+      - key: DRAKEN_CRAWL_CONCURRENCY
+        value: "3"
+      - key: DRAKEN_CRAWL_DELAY_SECONDS
+        value: "0.7"
+      - key: DRAKEN_MAX_PAGES_PER_AUDIT
+        value: "150"
+      - key: DRAKEN_REQUEST_TIMEOUT
+        value: "25"
+
+      # --- crawl etiquette --------------------------------------------------
       - key: DRAKEN_USER_AGENT
         value: DrakenSEO/0.1 (+https://github.com/Teoremadepierre/Draken)
-      # Everything below is optional; add the keys you have.
-      - key: DRAKEN_ANTHROPIC_API_KEY
-        sync: false
-      - key: DRAKEN_GSC_SERVICE_ACCOUNT_FILE
-        sync: false
+      - key: DRAKEN_RESPECT_ROBOTS
+        value: "true"
+
+      # --- safety rails (leave these on until you have reviewed what they do)
+      - key: DRAKEN_SUBMISSIONS_DRY_RUN
+        value: "true"
+      - key: DRAKEN_SUBMISSIONS_REQUIRE_APPROVAL
+        value: "true"
+      - key: DRAKEN_OUTREACH_SEND_ENABLED
+        value: "false"
+
+      # --- optional: add the keys you have ----------------------------------
+      # Real measured data for your own site. Both are free and are the single
+      # biggest upgrade to data quality. See docs/PUBLICAR.md.
       - key: DRAKEN_BING_WEBMASTER_API_KEY
         sync: false
+      - key: DRAKEN_GSC_SITE_URL
+        sync: false
+      # Search Console needs a JSON key file, which is awkward on a platform with
+      # no disk. Paste the file's contents into this one instead:
+      - key: DRAKEN_GSC_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      # AI visibility measurement and the in-app fix assistant.
+      - key: DRAKEN_ANTHROPIC_API_KEY
+        sync: false
+      - key: DRAKEN_PERPLEXITY_API_KEY
+        sync: false
+
+      # Exact Google positions, if you pay for a SERP provider.
       - key: DRAKEN_SERPAPI_KEY
         sync: false

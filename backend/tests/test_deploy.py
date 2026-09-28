@@ -192,3 +192,194 @@ def test_publish_guide_documents_every_template():
     for needle in ("install.sh", "render.yaml", "fly.toml", "cloudflared",
                    "DRAKEN_AUTH_ENABLED", "DRAKEN_SECRET_KEY"):
         assert needle in guide, f"PUBLICAR.md does not mention {needle}"
+
+
+# --- portability (export / import) ----------------------------------------
+
+
+def _seed_project(db):
+    """A project with something in every table the export is supposed to carry."""
+    from draken.core.models import (
+        AIPrompt,
+        Backlink,
+        BusinessProfile,
+        Campaign,
+        Keyword,
+        KeywordCluster,
+        LinkOpportunity,
+        LinkSource,
+        Project,
+        RankSnapshot,
+        Submission,
+    )
+
+    project = Project(domain="ejemplo.com", name="Ejemplo", base_url="https://ejemplo.com",
+                      country="ES", language="es", competitors=["otro.com"])
+    db.add(project)
+    db.flush()
+
+    db.add(BusinessProfile(project_id=project.id, legal_name="Ejemplo SL",
+                           email="hola@ejemplo.com", phone="+34 910 000 000"))
+
+    cluster = KeywordCluster(project_id=project.id, label="zapatos", recommended_page_type="category")
+    db.add(cluster)
+    db.flush()
+
+    keyword = Keyword(project_id=project.id, term="zapatos rojos", cluster_id=cluster.id,
+                      volume=320, volume_confidence=0.6)
+    db.add(keyword)
+    db.flush()
+    db.add(RankSnapshot(keyword_id=keyword.id, position=12, url="https://ejemplo.com/x"))
+
+    db.add(Backlink(project_id=project.id, source_url="https://blog.example/a",
+                    target_url="https://ejemplo.com/", source_domain="blog.example",
+                    anchor_text="ejemplo"))
+
+    campaign = Campaign(project_id=project.id, name="Directorios Q1")
+    db.add(campaign)
+
+    source = LinkSource(slug="una-fuente", name="Una fuente", domain="fuente.example",
+                        category="directory", authority=55)
+    db.add(source)
+    db.flush()
+
+    opportunity = LinkOpportunity(project_id=project.id, source_id=source.id,
+                                  campaign_id=campaign.id, target_domain="fuente.example",
+                                  score=71.5, status="queued")
+    db.add(opportunity)
+    db.flush()
+    db.add(Submission(project_id=project.id, opportunity_id=opportunity.id,
+                      state="prepared", dry_run=True))
+    db.add(AIPrompt(project_id=project.id, prompt="mejores zapatos rojos"))
+    db.commit()
+    return project
+
+
+def test_export_import_round_trip_keeps_the_work(db):
+    """The whole point: moving host must not mean starting over."""
+    from draken.core.models import (
+        Backlink,
+        BusinessProfile,
+        Keyword,
+        LinkOpportunity,
+        Project,
+        Submission,
+    )
+    from draken.services.portability import export_project, import_project
+
+    project = _seed_project(db)
+    payload = export_project(db, project=project)
+    assert payload["counts"]["keywords"] == 1
+    assert payload["opportunities"][0]["_source_slug"] == "una-fuente"
+
+    # Simulate the other install: the project is gone, ids will differ.
+    db.delete(project)
+    db.commit()
+
+    report = import_project(db, payload)
+    assert report["keywords"] == 1
+    assert report["opportunities"] == 1
+    assert report["submissions"] == 1
+
+    restored = db.query(Project).filter_by(domain="ejemplo.com").one()
+    assert restored.competitors == ["otro.com"]
+    assert db.query(BusinessProfile).filter_by(project_id=restored.id).one().legal_name == "Ejemplo SL"
+
+    keyword = db.query(Keyword).filter_by(project_id=restored.id).one()
+    assert keyword.term == "zapatos rojos"
+    assert keyword.cluster_id is not None, "the keyword lost its cluster"
+    assert keyword.volume == 320
+
+    assert db.query(Backlink).filter_by(project_id=restored.id).count() == 1
+    opportunity = db.query(LinkOpportunity).filter_by(project_id=restored.id).one()
+    assert opportunity.status == "queued"
+    assert opportunity.campaign_id is not None, "the opportunity lost its campaign"
+    submission = db.query(Submission).filter_by(project_id=restored.id).one()
+    assert submission.opportunity_id == opportunity.id
+
+
+def test_import_resolves_sources_by_slug_not_by_id(db):
+    """Catalog ids differ per install, so a carried id would point at the wrong source."""
+    from draken.core.models import LinkOpportunity, LinkSource, Project
+    from draken.services.portability import export_project, import_project
+
+    project = _seed_project(db)
+    payload = export_project(db, project=project)
+    db.delete(project)
+    db.commit()
+
+    # Shift the catalog ids: the same slug now lives at a different id.
+    db.query(LinkSource).delete()
+    db.commit()
+    for index in range(4):
+        db.add(LinkSource(slug=f"relleno-{index}", name=f"Relleno {index}",
+                          domain=f"relleno{index}.example", category="directory"))
+    db.add(LinkSource(slug="una-fuente", name="Una fuente", domain="fuente.example",
+                      category="directory", authority=55))
+    db.commit()
+    moved = db.query(LinkSource).filter_by(slug="una-fuente").one()
+
+    import_project(db, payload)
+    restored = db.query(Project).filter_by(domain="ejemplo.com").one()
+    opportunity = db.query(LinkOpportunity).filter_by(project_id=restored.id).one()
+    assert opportunity.source_id == moved.id
+
+
+def test_import_refuses_to_replace_a_project_unless_told_to(db):
+    from draken.services.portability import export_project, import_project
+
+    project = _seed_project(db)
+    payload = export_project(db, project=project)
+
+    with pytest.raises(ValueError, match="already exists"):
+        import_project(db, payload)
+
+    report = import_project(db, payload, overwrite=True)
+    assert report["keywords"] == 1
+
+
+def test_import_rejects_a_file_that_is_not_an_export(db):
+    from draken.services.portability import import_project
+
+    with pytest.raises(ValueError, match="not a Draken project export"):
+        import_project(db, {"hello": "world"})
+
+
+def test_import_rejects_a_newer_format_version(db):
+    from draken.services.portability import FORMAT_VERSION, import_project
+
+    payload = {"format": "draken-export", "format_version": FORMAT_VERSION + 1,
+               "project": {"domain": "x.com"}}
+    with pytest.raises(ValueError, match="Update Draken first"):
+        import_project(db, payload)
+
+
+def test_an_export_carries_no_secrets(db):
+    """Export files get emailed and dropped in cloud storage. Keys must not ride along."""
+    from draken.services.portability import export_project, to_json
+
+    project = _seed_project(db)
+    text = to_json(export_project(db, project=project))
+    for marker in ("api_key", "password", "secret", "token"):
+        assert marker not in text.lower(), f"the export leaks {marker}"
+
+
+def test_render_guide_covers_the_free_tier_traps():
+    guide = (REPO / "docs" / "RENDER.md").read_text()
+    for needle in ("DRAKEN_ADMIN_PASSWORD", "Blueprint", "draken import",
+                   "DRAKEN_GSC_SERVICE_ACCOUNT_JSON", "caduca"):
+        assert needle in guide, f"RENDER.md does not cover {needle}"
+
+
+def test_the_local_launcher_is_safe_and_self_contained():
+    import subprocess
+
+    script = REPO / "scripts" / "empezar.sh"
+    assert script.exists()
+    result = subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+    body = script.read_text()
+    assert "secrets.token_hex" in body, "the secret key must be generated, never shipped"
+    assert "DRAKEN_AUTH_ENABLED=false" in body, "a localhost-only try-out skips the login"
+    assert "127.0.0.1" in body, "it must not advertise a public address"

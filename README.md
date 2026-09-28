@@ -21,10 +21,14 @@ rápida a más control — todas detalladas en **[docs/PUBLICAR.md](docs/PUBLICA
 | **Render** | New → Blueprint sobre este repo (lee `render.yaml`) | 5 min | `https://draken-xxx.onrender.com` |
 | **Fly.io** | `fly launch && fly deploy` (lee `fly.toml`) | 8 min | `https://draken.fly.dev` |
 | **Túnel** | `cloudflared tunnel --url http://localhost:8000` | 3 min | URL temporal, sin servidor |
-| **Local** | `draken serve` | 2 min | `http://127.0.0.1:8000` |
+| **Local** | `bash scripts/empezar.sh` | 2 min | `http://127.0.0.1:8000` |
 
 El instalador genera la clave secreta y la contraseña de administrador, monta
 systemd, configura HTTPS automático con Caddy y programa el barrido semanal.
+
+¿Solo quieres probarlo en tu ordenador? **[docs/EMPEZAR.md](docs/EMPEZAR.md)**:
+un comando, sin icono ni instalador, se abre en el navegador. ¿Quieres la URL
+gratuita paso a paso? **[docs/RENDER.md](docs/RENDER.md)**.
 
 ---
 
@@ -45,6 +49,12 @@ glosario incluido. Hay además una [guía visual](docs/GUIA-VISUAL.md) y un
 ---
 
 ## Arranque rápido
+
+```bash
+bash scripts/empezar.sh   # instala, configura, prepara la base y abre el panel
+```
+
+O a mano, si prefieres ver cada paso:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate

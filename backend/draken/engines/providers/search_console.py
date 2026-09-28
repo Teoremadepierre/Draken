@@ -68,9 +68,32 @@ class GscResult:
         return not self.error
 
 
+def _service_account_key() -> dict | None:
+    """The service-account key, from the env var first, then from a file.
+
+    The env var exists because platforms like Render have no writable disk to
+    put a key file on.
+    """
+    raw = settings.gsc_service_account_json.strip()
+    if raw:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            log.error("DRAKEN_GSC_SERVICE_ACCOUNT_JSON is not valid JSON")
+            return None
+    path_value = settings.gsc_service_account_file
+    if path_value and Path(path_value).exists():
+        try:
+            return json.loads(Path(path_value).read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            log.error("could not read %s: %s", path_value, exc)
+    return None
+
+
 def is_configured() -> bool:
     return bool(
-        (settings.gsc_service_account_file and Path(settings.gsc_service_account_file).exists())
+        settings.gsc_service_account_json.strip()
+        or (settings.gsc_service_account_file and Path(settings.gsc_service_account_file).exists())
         or (settings.gsc_client_id and settings.gsc_client_secret and settings.gsc_refresh_token)
     )
 
@@ -82,10 +105,11 @@ def configuration_hint() -> str:
             "which does not exist."
         )
     return (
-        "Set DRAKEN_GSC_SERVICE_ACCOUNT_FILE to a Google service-account JSON key (with the "
-        "Search Console API enabled, and the service-account email added as a user on the "
-        "property), or set DRAKEN_GSC_CLIENT_ID / _CLIENT_SECRET / _REFRESH_TOKEN. "
-        "Then set DRAKEN_GSC_SITE_URL to the property, e.g. sc-domain:example.com"
+        "Create a Google service account with the Search Console API enabled, and add its "
+        "email as a user on the property. Then either paste the whole key file into "
+        "DRAKEN_GSC_SERVICE_ACCOUNT_JSON (best on platforms with no disk, such as Render) "
+        "or point DRAKEN_GSC_SERVICE_ACCOUNT_FILE at it on disk. "
+        "Finally set DRAKEN_GSC_SITE_URL, e.g. sc-domain:example.com"
     )
 
 
@@ -134,20 +158,26 @@ def _sign_service_account_jwt(key_data: dict) -> str:
 
 async def _access_token(client: PoliteClient) -> tuple[str, str]:
     """Return ``(token, error)``. Tokens are cached until shortly before expiry."""
-    cache_key = settings.gsc_service_account_file or settings.gsc_client_id
+    cache_key = (
+        settings.gsc_service_account_file
+        or settings.gsc_service_account_json[:64]
+        or settings.gsc_client_id
+    )
     cached = _token_cache.get(cache_key or "")
     if cached and cached[1] > time.time() + 60:
         return cached[0], ""
 
-    if settings.gsc_service_account_file:
-        path = Path(settings.gsc_service_account_file)
-        if not path.exists():
-            return "", f"service account file not found: {path}"
+    key_data = _service_account_key()
+    if key_data is not None:
+        if "client_email" not in key_data or "private_key" not in key_data:
+            return "", (
+                "The service-account key is missing client_email or private_key. "
+                "Paste the whole JSON file, not a fragment."
+            )
         try:
-            key_data = json.loads(path.read_text(encoding="utf-8"))
             assertion = _sign_service_account_jwt(key_data)
         except Exception as exc:  # noqa: BLE001
-            return "", f"could not read or sign with the service account key: {exc}"
+            return "", f"could not sign with the service account key: {exc}"
         payload = {
             "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "assertion": assertion,
