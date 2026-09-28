@@ -408,7 +408,11 @@ pre.code.wrap { white-space: pre-wrap; word-break: break-word; }
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-.row-actions { display: flex; gap: 4px; }
+.row-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* A long env-var name or URL must wrap rather than push the page wide. */
+code, .mono { overflow-wrap: anywhere; }
+.pill { max-width: 100%; overflow-wrap: anywhere; }
 .pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; font-size: 13px; }
 
 /* --- login --------------------------------------------------------------- */
@@ -474,6 +478,9 @@ pre.code.wrap { white-space: pre-wrap; word-break: break-word; }
   .stat-value { font-size: 21px; }
   .bar-row .bar-label { flex-basis: 96px; }
   .kv { grid-template-columns: 1fr; gap: 0 0; }
+  .card-head { flex-wrap: wrap; }
+  .card-head .row-actions { justify-content: flex-start; }
+  .pill { white-space: normal; }
   .kv dt { margin-top: 8px; }
 }
 

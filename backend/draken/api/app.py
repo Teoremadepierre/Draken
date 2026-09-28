@@ -25,6 +25,8 @@ from draken.api.routes import (
     opportunities,
     outreach,
     projects,
+    scan,
+    users,
 )
 from draken.core.config import FRONTEND_DIR, settings
 from draken.core.database import init_db, session_scope
@@ -33,6 +35,7 @@ from draken.engines.geo import engines as ai_engines
 from draken.engines.scheduler import handlers as _handlers  # noqa: F401 - registers job kinds
 from draken.engines.scheduler import jobs as job_runner
 from draken.engines.serp import fetcher
+from draken.services import scanner as _scanner  # noqa: F401 - registers the full_scan job
 
 log = get_logger(__name__)
 
@@ -57,6 +60,14 @@ async def lifespan(app: FastAPI):
                 log.info("seeded link source catalog: %s sources", result["total"])
     except Exception as exc:  # noqa: BLE001 - never block startup on seeding
         log.warning("could not seed link source catalog: %s", exc)
+
+    try:
+        from draken.services.accounts import ensure_bootstrap_owner
+
+        with session_scope() as db:
+            ensure_bootstrap_owner(db)
+    except Exception as exc:  # noqa: BLE001 - never block startup on this
+        log.warning("could not create the bootstrap owner user: %s", exc)
 
     if settings.scheduler_enabled:
         try:
@@ -96,6 +107,8 @@ def create_app() -> FastAPI:
 
     for router in (
         auth.router,
+        users.router,
+        scan.router,
         projects.router,
         keywords.router,
         audits.router,
@@ -122,6 +135,8 @@ def create_app() -> FastAPI:
                 "require_approval": settings.submissions_require_approval,
             },
             "outreach_send_enabled": settings.outreach_send_enabled,
+            "first_party_data": settings.first_party_data_configured(),
+            "serp_providers": fetcher.provider_availability(),
             "job_kinds": job_runner.registered_kinds(),
         }
 
@@ -138,6 +153,9 @@ def create_app() -> FastAPI:
             "submissions_require_approval": settings.submissions_require_approval,
             "outreach_send_enabled": settings.outreach_send_enabled,
             "suggest_providers": settings.suggest_provider_list,
+            "first_party_data": settings.first_party_data_configured(),
+            "serp_providers": fetcher.provider_availability(),
+            "serp_chain": fetcher.fallback_chain(),
         }
 
     @app.exception_handler(ValueError)
@@ -152,6 +170,16 @@ def create_app() -> FastAPI:
 
         @app.get("/", include_in_schema=False)
         def dashboard() -> FileResponse:
+            return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+        # Public pages. They serve the same shell; the client reads the path and
+        # renders the read-only view instead of the app.
+        @app.get("/shared/{token}", include_in_schema=False)
+        def shared_page(token: str) -> FileResponse:
+            return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+        @app.get("/invite/{token}", include_in_schema=False)
+        def invite_page(token: str) -> FileResponse:
             return FileResponse(str(FRONTEND_DIR / "index.html"))
 
         @app.get("/favicon.ico", include_in_schema=False)

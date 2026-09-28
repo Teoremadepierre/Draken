@@ -10,6 +10,8 @@ import tldextract
 # Offline-safe: use the snapshot bundled with tldextract, never fetch the PSL.
 _extractor = tldextract.TLDExtract(suffix_list_urls=(), fallback_to_snapshot=True)
 
+_IPV4_RE = re.compile(r"(?:\d{1,3}\.){3}\d{1,3}")
+
 _TRACKING_PARAMS = re.compile(
     r"^(utm_|fbclid|gclid|gbraid|wbraid|msclkid|mc_cid|mc_eid|ref|ref_src|igshid|_ga)", re.I
 )
@@ -22,8 +24,27 @@ def normalize_domain(value: str) -> str:
     value = value.strip()
     if "//" not in value:
         value = f"http://{value}"
-    host = urlparse(value).netloc or urlparse(value).path
-    host = host.split("@")[-1].split(":")[0].lower().rstrip(".")
+    parsed = urlparse(value)
+    # netloc is empty for a bare "example.com/path"; the path carries the host then.
+    host = (parsed.netloc or parsed.path).split("@")[-1].lower().strip().strip("/")
+    # A host has to contain at least one alphanumeric character. Without this an
+    # empty or whitespace-only input parses down to "/" and becomes a domain.
+    if not any(ch.isalnum() for ch in host):
+        return ""
+
+    # An IPv6 literal is bracketed and full of colons, so strip the port only
+    # after the closing bracket; splitting on the first colon would destroy it.
+    if host.startswith("["):
+        end = host.find("]")
+        return host[1:end] if end > 1 else host.strip("[]")
+
+    host = host.split("/")[0].split(":")[0].rstrip(".")
+
+    # An IPv4 literal is the whole host: keeping the last two labels of
+    # "127.0.0.1" produces "0.1", which is nonsense.
+    if _IPV4_RE.fullmatch(host):
+        return host
+
     parts = _extractor(host)
     if parts.registered_domain:
         return parts.registered_domain

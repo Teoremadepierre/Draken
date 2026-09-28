@@ -45,7 +45,7 @@ class SerpPage:
 
     @property
     def approximate(self) -> bool:
-        return self.provider not in {"serpapi", "dataforseo"}
+        return self.provider not in EXACT_PROVIDERS
 
     def position_of(self, domain: str) -> tuple[int | None, str]:
         target = normalize_domain(domain)
@@ -62,12 +62,37 @@ class SerpPage:
         return seen
 
 
+def provider_availability() -> dict[str, bool]:
+    """Which SERP providers this deployment can actually use right now."""
+    return {
+        "serpapi": bool(settings.serpapi_key),
+        "dataforseo": bool(settings.dataforseo_login and settings.dataforseo_password),
+        "brave": bool(settings.brave_api_key),
+        "searxng": bool(settings.searxng_url),
+        "duckduckgo_html": True,   # no key required
+        "mojeek": True,            # no key required
+    }
+
+
 def active_provider() -> str:
-    if settings.serpapi_key:
-        return "serpapi"
-    if settings.dataforseo_login and settings.dataforseo_password:
-        return "dataforseo"
+    """The best provider available, honouring an explicit pin."""
+    pinned = (settings.serp_provider or "").strip().lower()
+    available = provider_availability()
+    if pinned and available.get(pinned):
+        return pinned
+    for name in PROVIDER_PRIORITY:
+        if available.get(name):
+            return name
     return "duckduckgo_html"
+
+
+def fallback_chain() -> list[str]:
+    """Providers to try in order. A blocked or rate-limited engine falls through
+    to the next instead of silently returning nothing."""
+    available = provider_availability()
+    primary = active_provider()
+    chain = [primary] + [n for n in PROVIDER_PRIORITY if available.get(n) and n != primary]
+    return chain
 
 
 async def _serpapi(client: PoliteClient, term: str, country: str, language: str) -> SerpPage:
@@ -207,11 +232,127 @@ async def _duckduckgo_html(client: PoliteClient, term: str, country: str, langua
     return page
 
 
+async def _brave(client: PoliteClient, term: str, country: str, language: str) -> SerpPage:
+    """Brave Search API. Has a genuinely free tier (2,000 queries/month) and is an
+    independent index, so it is a useful second opinion rather than a mirror."""
+    page = SerpPage(term=term, country=country, provider="brave")
+    if not settings.brave_api_key:
+        page.error = "DRAKEN_BRAVE_API_KEY not set"
+        return page
+    data, res = await client.fetch_json(
+        "https://api.search.brave.com/res/v1/web/search",
+        params={"q": term, "country": country.upper(), "search_lang": language, "count": 20},
+        headers={"X-Subscription-Token": settings.brave_api_key, "Accept": "application/json"},
+    )
+    if not isinstance(data, dict):
+        page.error = res.error or f"HTTP {res.status}: {res.text[:200]}"
+        return page
+    results = (data.get("web") or {}).get("results") or []
+    for i, row in enumerate(results, start=1):
+        url = row.get("url") or ""
+        page.items.append(
+            SerpItem(
+                position=i,
+                url=normalize_url(url),
+                domain=normalize_domain(url),
+                title=row.get("title") or "",
+                snippet=(row.get("description") or "")[:2000],
+            )
+        )
+    for key, label in (("faq", "faq"), ("discussions", "discussions"), ("videos", "video"),
+                       ("news", "news"), ("infobox", "knowledge_panel")):
+        if data.get(key):
+            page.features.append(label)
+    if not page.items:
+        page.error = page.error or "no results returned"
+    return page
+
+
+async def _searxng(client: PoliteClient, term: str, country: str, language: str) -> SerpPage:
+    """A self-hosted SearXNG instance. Aggregates several engines, needs no key,
+    and is the right answer when you want independence from any single provider."""
+    page = SerpPage(term=term, country=country, provider="searxng")
+    base = (settings.searxng_url or "").rstrip("/")
+    if not base:
+        page.error = "DRAKEN_SEARXNG_URL not set"
+        return page
+    data, res = await client.fetch_json(
+        f"{base}/search",
+        params={"q": term, "format": "json", "language": language,
+                "engines": "google,bing,duckduckgo", "safesearch": 0},
+    )
+    if not isinstance(data, dict):
+        page.error = res.error or f"HTTP {res.status}: {res.text[:200]}"
+        return page
+    for i, row in enumerate(data.get("results") or [], start=1):
+        url = row.get("url") or ""
+        if not url.startswith("http"):
+            continue
+        page.items.append(
+            SerpItem(
+                position=i,
+                url=normalize_url(url),
+                domain=normalize_domain(url),
+                title=row.get("title") or "",
+                snippet=(row.get("content") or "")[:2000],
+            )
+        )
+        if i >= 30:
+            break
+    if not page.items:
+        page.error = "no results parsed"
+    return page
+
+
+async def _mojeek(client: PoliteClient, term: str, country: str, language: str) -> SerpPage:
+    """Mojeek has its own crawler and index, and its HTML is stable and
+    scrape-friendly by its own published policy. No key needed."""
+    page = SerpPage(term=term, country=country, provider="mojeek")
+    res = await client.fetch("https://www.mojeek.com/search", params={"q": term})
+    if not res.ok:
+        page.error = res.error or f"HTTP {res.status}"
+        return page
+    soup = BeautifulSoup(res.text, "lxml")
+    position = 0
+    for result in soup.select("ul.results-standard li, li.result"):
+        anchor = result.select_one("a.title, h2 a")
+        if not anchor:
+            continue
+        href = anchor.get("href") or ""
+        if not href.startswith("http"):
+            continue
+        position += 1
+        snippet = result.select_one("p.s, p.result-desc")
+        page.items.append(
+            SerpItem(
+                position=position,
+                url=normalize_url(href),
+                domain=normalize_domain(href),
+                title=anchor.get_text(" ", strip=True),
+                snippet=snippet.get_text(" ", strip=True) if snippet else "",
+            )
+        )
+        if position >= 30:
+            break
+    if not page.items:
+        page.error = "no organic results parsed"
+    return page
+
+
 _PROVIDERS = {
     "serpapi": _serpapi,
     "dataforseo": _dataforseo,
+    "brave": _brave,
+    "searxng": _searxng,
+    "mojeek": _mojeek,
     "duckduckgo_html": _duckduckgo_html,
 }
+
+# Preference order when nothing is pinned: paid and exact first, then keyed
+# independent indexes, then keyless ones.
+PROVIDER_PRIORITY = ["serpapi", "dataforseo", "brave", "searxng", "duckduckgo_html", "mojeek"]
+
+EXACT_PROVIDERS = {"serpapi", "dataforseo"}
 
 
 async def fetch_serp(
@@ -221,12 +362,30 @@ async def fetch_serp(
     language: str = "en",
     provider: str | None = None,
     client: PoliteClient | None = None,
+    allow_fallback: bool = True,
 ) -> SerpPage:
-    name = provider or active_provider()
-    fn = _PROVIDERS.get(name, _duckduckgo_html)
+    """Fetch one SERP, falling through to the next provider if one fails.
+
+    A single blocked or rate-limited engine should degrade the result, not empty it.
+    """
+    chain = [provider] if provider else (fallback_chain() if allow_fallback else [active_provider()])
 
     async def run(c: PoliteClient) -> SerpPage:
-        return await fn(c, term, country, language)
+        last = SerpPage(term=term, country=country, provider=chain[0] or "unknown",
+                        error="no provider available")
+        for name in chain:
+            fn = _PROVIDERS.get(name)
+            if fn is None:
+                continue
+            page = await fn(c, term, country, language)
+            if page.items:
+                if page.provider != chain[0]:
+                    log.info("serp: %r fell back to %s", term, page.provider)
+                return page
+            last = page
+            if not allow_fallback:
+                break
+        return last
 
     if client is not None:
         return await run(client)
@@ -245,8 +404,9 @@ async def fetch_many(
     import asyncio
 
     name = provider or active_provider()
-    delay = 0.4 if name in {"serpapi", "dataforseo"} else 2.0
-    concurrency = 5 if name in {"serpapi", "dataforseo"} else 2
+    # Paid APIs are built for volume; shared free endpoints are not.
+    delay = 0.4 if name in EXACT_PROVIDERS else 2.0
+    concurrency = 5 if name in EXACT_PROVIDERS else 2
     out: dict[str, SerpPage] = {}
     async with PoliteClient(delay=delay, concurrency=concurrency, timeout=25) as client:
         results = await asyncio.gather(

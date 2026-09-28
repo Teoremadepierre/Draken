@@ -8,6 +8,10 @@ import {
   initOverlays, loading, openModal, pill, toast,
 } from './ui.js';
 
+import { publicRoute, renderInvite, renderShared } from './public.js';
+
+import * as start from './views/start.js';
+import * as scan from './views/scan.js';
 import * as dashboard from './views/dashboard.js';
 import * as keywords from './views/keywords.js';
 import * as clusters from './views/clusters.js';
@@ -24,13 +28,15 @@ import * as campaigns from './views/campaigns.js';
 import * as aivisibility from './views/aivisibility.js';
 import * as geoassets from './views/geoassets.js';
 import * as profile from './views/profile.js';
+import * as datasources from './views/datasources.js';
+import * as team from './views/team.js';
 import * as jobs from './views/jobs.js';
 import * as settings from './views/settings.js';
 
 const VIEWS = [
-  dashboard, keywords, clusters, rankings, gap, audit, onpage, backlinks,
-  opportunities, sources, submissions, outreach, campaigns, aivisibility,
-  geoassets, profile, jobs, settings,
+  start, scan, dashboard, keywords, clusters, rankings, gap, audit, onpage,
+  backlinks, opportunities, sources, submissions, outreach, campaigns,
+  aivisibility, geoassets, profile, team, datasources, jobs, settings,
 ];
 
 const GROUPS = ['overview', 'research', 'site', 'links', 'ai', 'system'];
@@ -71,7 +77,9 @@ function navigate(viewId) {
 
 function currentViewId() {
   const id = window.location.hash.slice(1);
-  return VIEWS.some((v) => v.meta.id === id) ? id : 'dashboard';
+  if (VIEWS.some((v) => v.meta.id === id)) return id;
+  // First run: send people to the guided start rather than an empty dashboard.
+  return app.projects.length ? 'dashboard' : 'start';
 }
 
 async function renderView(viewId) {
@@ -294,6 +302,17 @@ async function attemptStart() {
 function init() {
   applyStaticLabels();
   initOverlays();
+
+  // Shared reports and invitations work without an account, so they short-circuit
+  // the whole auth and project-loading path.
+  const publicPage = publicRoute();
+  if (publicPage) {
+    document.querySelectorAll('.lang-btn').forEach((b) =>
+      b.classList.toggle('is-active', b.dataset.lang === getLang()));
+    if (publicPage.kind === 'shared') renderShared(publicPage.token);
+    else renderInvite(publicPage.token);
+    return;
+  }
 
   document.getElementById('login-form').addEventListener('submit', async (event) => {
     event.preventDefault();

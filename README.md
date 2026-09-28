@@ -10,6 +10,22 @@ API; cada clave que añades sustituye una estimación por un dato real.
 
 ---
 
+## Empieza por aquí
+
+Abre el panel y pega la URL de tu web en **Escáner**. En uno o dos minutos
+tienes, en una sola pantalla:
+
+- **qué está mal** en el sitio, ordenado por impacto, con un botón que le pide a
+  la IA el cambio exacto para tu caso;
+- **qué backlinks puedes conseguir hoy**, de qué autoridad y con qué esfuerzo;
+- **cómo te describen los asistentes de IA** y qué mueve esa aguja.
+
+Si nunca has hecho SEO, la vista **Empieza aquí** lleva los pasos en orden, con
+glosario incluido. Hay además una [guía visual](docs/GUIA-VISUAL.md) y un
+[guion de vídeo](docs/GUION-VIDEO.md) listo para grabar.
+
+---
+
 ## Arranque rápido
 
 ```bash
@@ -66,6 +82,31 @@ oportunidades ordenada por prioridad.
 - **Outreach.** 13 plantillas, búsqueda de contactos, y borradores que marcan
   explícitamente los huecos que solo una persona puede rellenar.
 
+### Datos reales, no solo estimaciones
+- **Google Search Console.** Impresiones, clics, CTR y posiciones que Google
+  midió de verdad para tu sitio, por consulta y por página. Detecta
+  canibalización entre tus propias páginas. Gratis.
+- **Bing Webmaster Tools.** Tus backlinks reales, gratis. Es el dato que las
+  suites de pago cobran más caro.
+- **Seis motores de SERP** con cadena de reserva: SerpApi y DataForSEO (exactos),
+  Brave (índice independiente, plan gratuito), tu propio SearXNG, DuckDuckGo y
+  Mojeek. Si uno está bloqueado o sin cuota, cae al siguiente en vez de devolver
+  vacío.
+- **Barra de calidad de datos de 1 a 4** en la interfaz, que dice en todo momento
+  si un número es una medición o una estimación.
+- **Diagnóstico de conectividad** que prueba cada host, dice qué deja de
+  funcionar por cada fallo, y distingue un bloqueo de red de un problema de
+  configuración.
+
+### Trabajo en equipo
+- **Escáner de un botón**: pega una URL, obtén el informe completo.
+- **Asistente de IA** por hallazgo: el cambio exacto, con tus datos reales. Sin
+  clave configurada, te da el informe listo para pegar en Claude o ChatGPT.
+- **Enlaces compartidos** de solo lectura, con caducidad, que incluyen ese mismo
+  informe para que quien lo reciba trabaje con **su propia IA**.
+- **Usuarios con tres roles** e invitaciones por enlace de un solo uso. Cada
+  persona puede configurar su propia clave de IA.
+
 ### Visibilidad en IA (GEO)
 - Conjuntos de preguntas que escribiría un comprador real, en español o inglés.
 - Medición en Anthropic, OpenAI, Perplexity y Gemini.
@@ -81,6 +122,8 @@ oportunidades ordenada por prioridad.
 |---|---|
 | **[Estudio de backlinks](docs/ESTUDIO-BACKLINKS.md)** | El documento estratégico: modelo de tres niveles, catálogo de tácticas con conversiones realistas, estrategia de anchors, qué no hacer y por qué, y un plan de 90 días |
 | **[Visibilidad en IA](docs/VISIBILIDAD-IA.md)** | Cómo funciona realmente que un asistente te recomiende, las siete palancas por impacto, y un plan de 30 días |
+| **[Guía visual](docs/GUIA-VISUAL.md)** | Para quien no ha hecho SEO nunca: qué pulsar, qué se ve y qué significa, con diagramas |
+| **[Guion de vídeo](docs/GUION-VIDEO.md)** | Plano a plano para grabar un tutorial de 8 minutos, más seis cortes temáticos |
 | **[Arquitectura](docs/ARQUITECTURA.md)** | Estructura, decisiones de diseño y modelo de datos |
 | **[Despliegue](docs/DESPLIEGUE.md)** | Local, Docker y VPS propio con nginx, systemd y cron |
 
@@ -164,7 +207,7 @@ Los límites están en el servidor, no en la interfaz:
 
 ```bash
 pip install -e "backend[dev]"
-pytest backend/tests -q        # 130 pruebas, ninguna necesita internet
+pytest backend/tests -q        # 177 pruebas, ninguna necesita internet
 ruff check backend/ scripts/
 ```
 
@@ -180,7 +223,9 @@ sobre HTTP real y comprueban que la auditoría detecta cada uno.
   problemas, guiones de envío) está en inglés.
 - **Las estimaciones se marcan como estimaciones.** Sin un proveedor de SERP de
   pago, las posiciones vienen de un motor gratuito y el panel lo indica. El
-  volumen de búsqueda lleva siempre su nivel de confianza.
+  volumen de búsqueda lleva siempre su nivel de confianza. Conecta Search Console
+  y Bing Webmaster (ambos gratis) y esos números pasan a ser mediciones reales:
+  la barra de calidad de datos sube de 1/4 a 3/4.
 - **Es una herramienta interna.** Está pensada para un equipo detrás de tu propio
   proxy, no como SaaS multiinquilino. Activa la autenticación si es accesible
   desde fuera.

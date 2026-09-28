@@ -138,6 +138,18 @@ class IssueSeverity(str, enum.Enum):
     notice = "notice"
 
 
+class UserRole(str, enum.Enum):
+    owner = "owner"        # everything, including users and settings
+    editor = "editor"      # runs scans and works the pipeline
+    viewer = "viewer"      # reads reports only
+
+
+class ShareScope(str, enum.Enum):
+    report = "report"      # the scan report for one project
+    backlinks = "backlinks"
+    full = "full"
+
+
 # ---------------------------------------------------------------------------
 # Projects
 # ---------------------------------------------------------------------------
@@ -726,6 +738,71 @@ class Job(Base, TimestampMixin):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     schedule_cron: Mapped[str] = mapped_column(String(80), default="")
+
+
+class User(Base, TimestampMixin):
+    """A person who can sign in. Small on purpose: this is an internal team tool."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(320), default="")
+    display_name: Mapped[str] = mapped_column(String(200), default="")
+    password_hash: Mapped[str] = mapped_column(String(300), default="")
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.editor.value)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Per-user AI key, so a colleague can use their own assistant rather than yours.
+    ai_engine: Mapped[str] = mapped_column(String(40), default="")
+    ai_api_key: Mapped[str] = mapped_column(String(300), default="")
+    invite_token: Mapped[str] = mapped_column(String(80), default="", index=True)
+    invite_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    settings_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class ProjectMember(Base, TimestampMixin):
+    """Which users can see which projects. Absent rows mean owner-only."""
+
+    __tablename__ = "project_members"
+    __table_args__ = (UniqueConstraint("project_id", "user_id", name="uq_member_unique"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.editor.value)
+
+
+class ShareLink(Base, TimestampMixin):
+    """A read-only link to a report, for someone without an account."""
+
+    __tablename__ = "share_links"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    token: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(200), default="")
+    scope: Mapped[str] = mapped_column(String(20), default=ShareScope.report.value)
+    created_by: Mapped[str] = mapped_column(String(120), default="")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # A shared report can carry the AI brief so the recipient can use their own assistant.
+    allow_ai_brief: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    @property
+    def is_valid(self) -> bool:
+        if self.revoked:
+            return False
+        if self.expires_at is None:
+            return True
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        return expires > datetime.now(UTC)
 
 
 class ActivityLog(Base):

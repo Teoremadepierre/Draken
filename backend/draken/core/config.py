@@ -49,9 +49,21 @@ class Settings(BaseSettings):
 
     # --- keyword / SERP providers ------------------------------------------
     suggest_providers: str = "google,bing,duckduckgo"
+    serp_provider: str = ""          # pin one; empty = best available
     serpapi_key: str = ""
     dataforseo_login: str = ""
     dataforseo_password: str = ""
+    brave_api_key: str = ""          # free tier: 2,000 queries/month
+    searxng_url: str = ""            # your own SearXNG instance
+
+    # --- first-party data (real, measured - not estimates) ------------------
+    gsc_service_account_file: str = ""
+    gsc_client_id: str = ""
+    gsc_client_secret: str = ""
+    gsc_refresh_token: str = ""
+    gsc_site_url: str = ""           # e.g. sc-domain:example.com
+    bing_webmaster_api_key: str = ""
+    bing_site_url: str = ""
 
     # --- backlink providers -------------------------------------------------
     commoncrawl_enabled: bool = True
@@ -112,6 +124,19 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.env.lower() in {"production", "prod"}
+
+    def first_party_data_configured(self) -> dict[str, bool]:
+        """Sources that return measured data about your own site, not estimates."""
+        from pathlib import Path as _Path
+
+        gsc = bool(
+            (self.gsc_service_account_file and _Path(self.gsc_service_account_file).exists())
+            or (self.gsc_client_id and self.gsc_client_secret and self.gsc_refresh_token)
+        )
+        return {
+            "search_console": gsc,
+            "bing_webmaster": bool(self.bing_webmaster_api_key),
+        }
 
     def ai_engines_configured(self) -> dict[str, bool]:
         return {
