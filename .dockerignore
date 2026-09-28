@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+data/draken.db*
+data/runtime
+data/exports
+logs
+*.log
+.env
+node_modules

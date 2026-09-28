@@ -90,6 +90,10 @@ class Settings(BaseSettings):
         if v.startswith("sqlite"):
             # sqlite:///relative/path or sqlite:////absolute/path
             raw = v.split("sqlite:///", 1)[-1]
+            # An in-memory database has no directory; resolving it would create
+            # a file literally named ":memory:" in the repository.
+            if not raw or raw.startswith(":memory:") or raw.startswith("file:"):
+                return v
             path = Path(raw)
             if not path.is_absolute():
                 path = (REPO_ROOT / raw).resolve()

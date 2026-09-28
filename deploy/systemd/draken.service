@@ -1,0 +1,36 @@
+[Unit]
+Description=Draken SEO Suite
+Documentation=https://github.com/Teoremadepierre/Draken
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=draken
+Group=draken
+WorkingDirectory=/home/draken/draken
+EnvironmentFile=/home/draken/draken/.env
+ExecStart=/home/draken/draken/.venv/bin/uvicorn draken.api.app:app \
+    --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips='127.0.0.1'
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening. Draken only needs to write to its own data directory.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/draken/draken/data /home/draken/logs
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=draken
+
+[Install]
+WantedBy=multi-user.target
